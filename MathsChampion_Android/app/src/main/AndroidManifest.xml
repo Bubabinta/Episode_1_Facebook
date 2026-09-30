@@ -3,6 +3,8 @@
     <application
         android:allowBackup="true"
         android:label="TafCalcul"
+        android:icon="@drawable/ic_tafcalcul"
+        android:roundIcon="@drawable/ic_tafcalcul"
         android:theme="@style/AppTheme"
         android:supportsRtl="true">
         <activity
