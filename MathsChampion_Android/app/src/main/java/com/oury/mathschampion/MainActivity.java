@@ -28,9 +28,11 @@ public class MainActivity extends Activity {
     private final Random rnd = new Random();
     private LinearLayout root;
     private SharedPreferences prefs;
-    private String name = "", mode = "MIX";
+    private String name = "", mode = "MIX", currentOp = "ADD", currentSign = "+";
     private boolean atNameEntry = false;
     private int level = 1, stars = 0, total = 0, correct = 0, q = 0, roundCorrect = 0, answer = 0;
+    private int currentA = 0, currentB = 0;
+    private final List<String> mistakes = new ArrayList<>();
 
     private static final int BLUE = Color.rgb(20,118,255);
     private static final int CYAN = Color.rgb(30,196,255);
@@ -159,7 +161,7 @@ public class MainActivity extends Activity {
         signature();
     }
 
-    private void start(String m){mode=m;q=0;roundCorrect=0;next();}
+    private void start(String m){mode=m;q=0;roundCorrect=0;mistakes.clear();next();}
 
     private void next(){
         if(q>=10){finishRound();return;} screen();brand();
@@ -167,11 +169,13 @@ public class MainActivity extends Activity {
         ctext(top,"Niveau " + level + "   ⭐ " + stars + "   •   " + (q+1) + " / 10",18,true,WHITE);
         mascot(); label("Bravo " + name + ", tu peux le faire !",20,true,WHITE);
         String op=mode;if("MIX".equals(op)){String[] ops={"ADD","SUB","MUL","DIV"};op=ops[rnd.nextInt(4)];}
+        currentOp=op;
         int a,b;String sign;
         if("SUB".equals(op)){a=rnd.nextInt(20+level)+1;b=rnd.nextInt(a+1);answer=a-b;sign="−";}
         else if("MUL".equals(op)){a=rnd.nextInt(Math.min(12,3+level))+1;b=rnd.nextInt(10)+1;answer=a*b;sign="×";}
         else if("DIV".equals(op)){b=rnd.nextInt(9)+1;answer=rnd.nextInt(10)+1;a=b*answer;sign="÷";}
         else{a=rnd.nextInt(15+level*2)+1;b=rnd.nextInt(15+level*2)+1;answer=a+b;sign="+";}
+        currentA=a; currentB=b; currentSign=sign;
         LinearLayout qc=card(Color.argb(245,248,253,255));ctext(qc,a+"  "+sign+"  "+b+"  =  ?",38,true,DEEP);
         List<Integer> choices=new ArrayList<>();choices.add(answer);while(choices.size()<4){int x=Math.max(0,answer+rnd.nextInt(13)-6);if(!choices.contains(x))choices.add(x);}Collections.shuffle(choices);
         addAnswerRow(choices.get(0),BLUE,choices.get(1),ORANGE);addAnswerRow(choices.get(2),GREEN,choices.get(3),PURPLE);
@@ -190,9 +194,49 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(86),1);lp.setMargins(dp(5),dp(6),dp(5),dp(6));row.addView(b,lp);
     }
 
-    private void choose(int value){q++;total++;if(value==answer){roundCorrect++;correct++;stars+=2;Toast.makeText(this,"Bravo " + name + " ! ⭐ +2",Toast.LENGTH_SHORT).show();}else Toast.makeText(this,"La bonne réponse était " + answer,Toast.LENGTH_SHORT).show();save();next();}
+    private String explanationFor(int chosen){
+        String calc=currentA+" "+currentSign+" "+currentB+" = "+answer;
+        String why;
+        if("SUB".equals(currentOp)) why="On part de "+currentA+" et on retire "+currentB+". Il reste "+answer+".";
+        else if("MUL".equals(currentOp)) why=currentA+" × "+currentB+" signifie "+currentA+" groupes de "+currentB+". Le total est "+answer+".";
+        else if("DIV".equals(currentOp)) why="On partage "+currentA+" en groupes de "+currentB+". On obtient "+answer+" car "+currentB+" × "+answer+" = "+currentA+".";
+        else why="On additionne "+currentA+" et "+currentB+". Leur somme est "+answer+".";
+        return "❌ "+currentA+" "+currentSign+" "+currentB+"\nTa réponse : "+chosen+"\n✅ Bonne réponse : "+answer+"\n💡 "+why;
+    }
 
-    private void finishRound(){int bonus=0;if(roundCorrect>=8){level=Math.min(50,level+1);stars+=10;bonus=10;}save();screen();brand();mascot();LinearLayout c=card(Color.argb(240,248,252,255));ctext(c,"🏆 Bravo " + name + " !",28,true,DEEP);ctext(c,roundCorrect+" / 10 bonnes réponses",23,true,PURPLE);ctext(c,"Niveau : "+level+" / 50\nÉtoiles : "+stars+(bonus>0?"  •  Bonus +10":""),18,false,Color.rgb(70,75,145));button("▶ Continuer",ORANGE).setOnClickListener(v->menu());button("🔁 Rejouer",GREEN).setOnClickListener(v->start(mode));button("🏠 Accueil",PURPLE).setOnClickListener(v->home());signature();}
+    private void choose(int value){
+        q++; total++;
+        if(value==answer){roundCorrect++;correct++;stars+=2;Toast.makeText(this,"Bravo " + name + " ! ⭐ +2",Toast.LENGTH_SHORT).show();}
+        else {mistakes.add(explanationFor(value));Toast.makeText(this,"La bonne réponse était " + answer,Toast.LENGTH_SHORT).show();}
+        save();next();
+    }
+
+    private void finishRound(){
+        int bonus=0;if(roundCorrect>=8){level=Math.min(50,level+1);stars+=10;bonus=10;}save();screen();brand();mascot();
+        LinearLayout c=card(Color.argb(240,248,252,255));
+        ctext(c,"🏆 Bravo " + name + " !",28,true,DEEP);
+        ctext(c,roundCorrect+" / 10 bonnes réponses",23,true,PURPLE);
+        ctext(c,"Niveau : "+level+" / 50\nÉtoiles : "+stars+(bonus>0?"  •  Bonus +10":""),18,false,Color.rgb(70,75,145));
+
+        LinearLayout review=card(Color.argb(245,255,248,226));
+        ctext(review,"📘 Explication des réponses ratées",23,true,Color.rgb(145,83,12));
+        if(mistakes.isEmpty()){
+            ctext(review,"✅ Aucune erreur dans ce questionnaire. Excellent travail !",17,true,Color.rgb(20,120,70));
+        } else {
+            ctext(review,"Relis tranquillement chaque correction pour comprendre où tu t’es trompé.",15,false,DEEP);
+            for(int i=0;i<mistakes.size();i++){
+                TextView r=ctext(review,(i+1)+". "+mistakes.get(i),16,false,DEEP);
+                r.setGravity(Gravity.LEFT);
+                r.setBackground(bg(Color.argb(180,255,255,255),18));
+                LinearLayout.LayoutParams rp=new LinearLayout.LayoutParams(-1,-2);rp.setMargins(0,dp(7),0,dp(7));r.setLayoutParams(rp);r.setPadding(dp(14),dp(12),dp(14),dp(12));
+            }
+        }
+
+        button("▶ Continuer",ORANGE).setOnClickListener(v->menu());
+        button("🔁 Rejouer",GREEN).setOnClickListener(v->start(mode));
+        button("🏠 Accueil",PURPLE).setOnClickListener(v->home());
+        signature();
+    }
 
     private void trophies(){screen();brand();mascot();LinearLayout c=card(Color.argb(242,255,249,225));ctext(c,"🏆 Trophées de " + name,27,true,Color.rgb(150,90,15));ctext(c,correct>=5?"🥉 Premier pas — débloqué":"🔒 Premier pas — 5 bonnes réponses",17,false,DEEP);ctext(c,correct>=25?"🥈 Calculateur — débloqué":"🔒 Calculateur — 25 bonnes réponses",17,false,DEEP);ctext(c,correct>=50?"🥇 Champion — débloqué":"🔒 Champion — 50 bonnes réponses",17,false,DEEP);ctext(c,level>=10?"🚀 Explorateur — débloqué":"🔒 Explorateur — niveau 10",17,false,DEEP);button("← Retour",PURPLE).setOnClickListener(v->home());signature();}
 
