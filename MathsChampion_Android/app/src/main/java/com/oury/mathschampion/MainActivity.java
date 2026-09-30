@@ -22,15 +22,19 @@ public class MainActivity extends Activity {
     private final Random rnd = new Random();
     private LinearLayout root;
     private SharedPreferences prefs;
-    private String name = "Champion", mode = "MIX";
+    private String name = "", mode = "MIX";
+    private boolean atNameEntry = false;
     private int level = 1, stars = 0, total = 0, correct = 0, q = 0, roundCorrect = 0, answer = 0;
     private static final int PURPLE = Color.rgb(91,75,219), PINK = Color.rgb(255,99,174), BLUE = Color.rgb(57,173,255), GREEN = Color.rgb(63,190,126), ORANGE = Color.rgb(255,164,66), BG = Color.rgb(246,247,252), TEXT = Color.rgb(37,41,57);
 
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
         prefs = getSharedPreferences("maths_champion", MODE_PRIVATE);
-        name = prefs.getString("name", "Champion"); level = prefs.getInt("level",1); stars = prefs.getInt("stars",0); total = prefs.getInt("total",0); correct = prefs.getInt("correct",0);
-        home();
+        level = prefs.getInt("level",1);
+        stars = prefs.getInt("stars",0);
+        total = prefs.getInt("total",0);
+        correct = prefs.getInt("correct",0);
+        nameEntry();
     }
 
     private void screen() {
@@ -49,8 +53,33 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1,dp(60)); lp.setMargins(0,dp(6),0,dp(6)); root.addView(b,lp); return b;
     }
 
+    private void nameEntry() {
+        atNameEntry = true;
+        screen();
+        text("🧠 TafCalcul",32,true);
+        text("Le jeu de calcul mental pour devenir plus rapide chaque jour !",16,false);
+        text("Entre ton nom avant de commencer",22,true);
+        EditText e = new EditText(this);
+        e.setHint("Ton prénom / nom");
+        e.setTextSize(19);
+        e.setSingleLine(true);
+        root.addView(e,new LinearLayout.LayoutParams(-1,dp(64)));
+        button("▶ Commencer",PURPLE).setOnClickListener(v -> {
+            String n = e.getText().toString().trim();
+            if (n.isEmpty()) {
+                Toast.makeText(this,"Entre ton nom pour continuer",Toast.LENGTH_SHORT).show();
+                e.requestFocus();
+                return;
+            }
+            name = n;
+            save();
+            home();
+        });
+    }
+
     private void home() {
-        screen(); text("🧠 Maths Champion",30,true); text("Apprends, joue et deviens champion du calcul mental !",16,false); text("Bonjour " + name + " 👋",22,true); text("Niveau " + level + "   •   ⭐ " + stars,17,false);
+        atNameEntry = false;
+        screen(); text("🧠 TafCalcul",30,true); text("Apprends, joue et deviens champion du calcul mental !",16,false); text("Bonjour " + name + " 👋",22,true); text("Niveau " + level + "   •   ⭐ " + stars,17,false);
         button("▶ Jouer",PURPLE).setOnClickListener(v -> menu());
         button("🎯 Défi du jour",PINK).setOnClickListener(v -> start("MIX"));
         button("🏆 Trophées",ORANGE).setOnClickListener(v -> trophies());
@@ -72,7 +101,7 @@ public class MainActivity extends Activity {
 
     private void next() {
         if (q >= 10) { finishRound(); return; }
-        screen(); text("Question " + (q+1) + " / 10",18,true); text("⭐ " + stars + "   •   ✅ " + roundCorrect,16,false);
+        screen(); text("Question " + (q+1) + " / 10",18,true); text(name + "   •   ⭐ " + stars + "   •   ✅ " + roundCorrect,16,false);
         String op = mode; if ("MIX".equals(op)) { String[] ops={"ADD","SUB","MUL","DIV"}; op=ops[rnd.nextInt(4)]; }
         int a,b; String sign;
         if ("SUB".equals(op)) { a=rnd.nextInt(20+level)+1; b=rnd.nextInt(a+1); answer=a-b; sign="−"; }
@@ -89,19 +118,19 @@ public class MainActivity extends Activity {
 
     private void choose(int value) {
         q++; total++;
-        if(value==answer){ roundCorrect++; correct++; stars+=2; Toast.makeText(this,"Bravo ! ⭐ +2",Toast.LENGTH_SHORT).show(); }
+        if(value==answer){ roundCorrect++; correct++; stars+=2; Toast.makeText(this,"Bravo " + name + " ! ⭐ +2",Toast.LENGTH_SHORT).show(); }
         else Toast.makeText(this,"La bonne réponse était " + answer,Toast.LENGTH_SHORT).show();
         save(); next();
     }
 
     private void finishRound() {
         int bonus=0; if(roundCorrect>=8){ level=Math.min(50,level+1); stars+=10; bonus=10; } save();
-        screen(); text("🏆 Partie terminée !",29,true); text(roundCorrect + " / 10 bonnes réponses",25,true); text("Niveau : " + level + " / 50",18,false); text("Étoiles : " + stars + (bonus>0 ? "  •  Bonus +10" : ""),18,false);
+        screen(); text("🏆 Bravo " + name + " !",29,true); text(roundCorrect + " / 10 bonnes réponses",25,true); text("Niveau : " + level + " / 50",18,false); text("Étoiles : " + stars + (bonus>0 ? "  •  Bonus +10" : ""),18,false);
         button("▶ Continuer",PURPLE).setOnClickListener(v -> menu()); button("🔁 Rejouer",GREEN).setOnClickListener(v -> start(mode)); button("🏠 Accueil",Color.DKGRAY).setOnClickListener(v -> home());
     }
 
     private void trophies() {
-        screen(); text("🏆 Mes trophées",28,true);
+        screen(); text("🏆 Trophées de " + name,28,true);
         text(correct>=5 ? "🥉 Premier pas — débloqué" : "🔒 Premier pas — 5 bonnes réponses",17,false);
         text(correct>=25 ? "🥈 Calculateur — débloqué" : "🔒 Calculateur — 25 bonnes réponses",17,false);
         text(correct>=50 ? "🥇 Champion — débloqué" : "🔒 Champion — 50 bonnes réponses",17,false);
@@ -110,14 +139,14 @@ public class MainActivity extends Activity {
     }
 
     private void progress() {
-        screen(); text("📊 Progression",28,true); int rate=total==0?0:(100*correct/total);
+        screen(); text("📊 Progression de " + name,28,true); int rate=total==0?0:(100*correct/total);
         text("Calculs réalisés : " + total,18,false); text("Bonnes réponses : " + correct,18,false); text("Réussite : " + rate + " %",18,false); text("Niveau : " + level + " / 50",18,false); text("Étoiles : " + stars,18,false);
         button("← Retour",PURPLE).setOnClickListener(v -> home());
     }
 
     private void profile() {
-        screen(); text("👤 Mon profil",28,true); EditText e=new EditText(this); e.setText(name); e.setHint("Prénom / pseudo"); e.setTextSize(18); root.addView(e,new LinearLayout.LayoutParams(-1,dp(60)));
-        button("💾 Enregistrer",GREEN).setOnClickListener(v -> { String n=e.getText().toString().trim(); if(!n.isEmpty()) name=n; save(); home(); });
+        screen(); text("👤 Mon profil",28,true); EditText e=new EditText(this); e.setText(name); e.setHint("Prénom / nom"); e.setTextSize(18); root.addView(e,new LinearLayout.LayoutParams(-1,dp(60)));
+        button("💾 Enregistrer",GREEN).setOnClickListener(v -> { String n=e.getText().toString().trim(); if(n.isEmpty()){Toast.makeText(this,"Le nom est obligatoire",Toast.LENGTH_SHORT).show();return;} name=n; save(); home(); });
         button("Réinitialiser",PINK).setOnClickListener(v -> new AlertDialog.Builder(this).setTitle("Réinitialiser ?").setMessage("La progression sera remise à zéro.").setNegativeButton("Annuler",null).setPositiveButton("Oui",(d,w)->{level=1;stars=0;total=0;correct=0;save();home();}).show());
         button("← Retour",Color.DKGRAY).setOnClickListener(v -> home());
     }
@@ -125,5 +154,11 @@ public class MainActivity extends Activity {
     private void confirmQuit(){ new AlertDialog.Builder(this).setTitle("Quitter la partie ?").setMessage("Ta progression sera conservée.").setNegativeButton("Continuer",null).setPositiveButton("Quitter",(d,w)->home()).show(); }
     private void save(){ prefs.edit().putString("name",name).putInt("level",level).putInt("stars",stars).putInt("total",total).putInt("correct",correct).apply(); }
     private int dp(int v){ return (int)(v*getResources().getDisplayMetrics().density+0.5f); }
-    @Override public void onBackPressed(){ confirmQuit(); }
+    @Override public void onBackPressed(){
+        if(atNameEntry){
+            new AlertDialog.Builder(this).setTitle("Quitter TafCalcul ?").setMessage("Veux-tu fermer l'application ?").setNegativeButton("Non",null).setPositiveButton("Oui",(d,w)->finish()).show();
+        } else {
+            confirmQuit();
+        }
+    }
 }
