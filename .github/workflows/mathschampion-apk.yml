@@ -2,47 +2,37 @@ name: Build Maths Champion APK
 
 on:
   push:
-    branches: ["maths-champion-build"]
-    paths:
-      - "MathsChampion_Android/**"
-      - ".github/workflows/mathschampion-apk.yml"
+    branches:
+      - maths-champion-build
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-      SDKMANAGER: /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v5
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
 
-      - name: Accept Android licenses
-        run: yes | "$SDKMANAGER" --licenses >/dev/null || true
+      - name: Accept licenses
+        run: yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
 
-      - name: Install Android 35
-        run: "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+      - name: Install Android SDK packages
+        run: /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager 'platform-tools' 'platforms;android-35' 'build-tools;35.0.0'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.11.1"
+          gradle-version: '8.11.1'
 
-      - name: Build debug APK
+      - name: Build APK
         working-directory: MathsChampion_Android
-        run: gradle :app:assembleDebug --stacktrace
+        run: gradle :app:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: MathsChampion-APK
           path: MathsChampion_Android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
