@@ -1,4 +1,4 @@
-name: Build Maths Champion APK
+name: Build TafCalcul APK
 
 on:
   push:
@@ -31,8 +31,11 @@ jobs:
         working-directory: MathsChampion_Android
         run: gradle :app:assembleDebug
 
+      - name: Rename APK
+        run: cp MathsChampion_Android/app/build/outputs/apk/debug/app-debug.apk MathsChampion_Android/TafCalcul.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: MathsChampion-APK
-          path: MathsChampion_Android/app/build/outputs/apk/debug/app-debug.apk
+          name: TafCalcul-APK
+          path: MathsChampion_Android/TafCalcul.apk
