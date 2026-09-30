@@ -76,6 +76,12 @@ public class MainActivity extends Activity {
         t.setPadding(dp(6),dp(7),dp(6),dp(7)); if(bold)t.setTypeface(Typeface.DEFAULT,Typeface.BOLD); root.addView(t); return t;
     }
 
+    private void signature(){
+        spacer(10);
+        TextView s=label("Applications personnalisées | +224 621 86 01 08",12,true,Color.argb(220,255,255,255));
+        s.setPadding(dp(8),dp(10),dp(8),dp(4));
+    }
+
     private void brand() {
         TextView t = new TextView(this); SpannableString s = new SpannableString("TafCalcul");
         s.setSpan(new ForegroundColorSpan(WHITE),0,3,Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -118,6 +124,7 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(-1,dp(64));ep.setMargins(0,dp(16),0,dp(10));c.addView(e,ep);
         Button go=cardButton(c,"▶  Continuer  ❯",ORANGE);go.setOnClickListener(v->{String n=e.getText().toString().trim();if(n.isEmpty()){Toast.makeText(this,"Entre ton prénom pour continuer",Toast.LENGTH_SHORT).show();e.requestFocus();return;}name=n;save();home();});
         ctext(c,"🙂  Choisis ton prénom et deviens champion !",15,true,PURPLE);
+        signature();
     }
 
     private void home(){
@@ -133,6 +140,7 @@ public class MainActivity extends Activity {
         homeTile(row2,"📊\nProgression",Color.rgb(218,255,239),Color.rgb(20,99,74),v->progress());
         homeTile(row2,"⭐\nTrophées",Color.rgb(255,244,208),Color.rgb(140,75,20),v->trophies());
         button("👤  Profil",PURPLE).setOnClickListener(v->profile());
+        signature();
     }
 
     private void homeTile(LinearLayout row,String text,int color,int textColor,View.OnClickListener l){
@@ -148,6 +156,7 @@ public class MainActivity extends Activity {
         button("➗  Division",PURPLE).setOnClickListener(v->start("DIV"));
         button("🎲  Mélange",PINK).setOnClickListener(v->start("MIX"));
         button("←  Retour",Color.rgb(65,70,130)).setOnClickListener(v->home());
+        signature();
     }
 
     private void start(String m){mode=m;q=0;roundCorrect=0;next();}
@@ -168,6 +177,7 @@ public class MainActivity extends Activity {
         addAnswerRow(choices.get(0),BLUE,choices.get(1),ORANGE);addAnswerRow(choices.get(2),GREEN,choices.get(3),PURPLE);
         label("⭐ Progression : " + q + " / 10",16,true,WHITE);
         button("← Quitter la partie",Color.rgb(64,68,128)).setOnClickListener(v->confirmQuit());
+        signature();
     }
 
     private void addAnswerRow(int a,int ca,int b,int cb){
@@ -182,13 +192,13 @@ public class MainActivity extends Activity {
 
     private void choose(int value){q++;total++;if(value==answer){roundCorrect++;correct++;stars+=2;Toast.makeText(this,"Bravo " + name + " ! ⭐ +2",Toast.LENGTH_SHORT).show();}else Toast.makeText(this,"La bonne réponse était " + answer,Toast.LENGTH_SHORT).show();save();next();}
 
-    private void finishRound(){int bonus=0;if(roundCorrect>=8){level=Math.min(50,level+1);stars+=10;bonus=10;}save();screen();brand();mascot();LinearLayout c=card(Color.argb(240,248,252,255));ctext(c,"🏆 Bravo " + name + " !",28,true,DEEP);ctext(c,roundCorrect+" / 10 bonnes réponses",23,true,PURPLE);ctext(c,"Niveau : "+level+" / 50\nÉtoiles : "+stars+(bonus>0?"  •  Bonus +10":""),18,false,Color.rgb(70,75,145));button("▶ Continuer",ORANGE).setOnClickListener(v->menu());button("🔁 Rejouer",GREEN).setOnClickListener(v->start(mode));button("🏠 Accueil",PURPLE).setOnClickListener(v->home());}
+    private void finishRound(){int bonus=0;if(roundCorrect>=8){level=Math.min(50,level+1);stars+=10;bonus=10;}save();screen();brand();mascot();LinearLayout c=card(Color.argb(240,248,252,255));ctext(c,"🏆 Bravo " + name + " !",28,true,DEEP);ctext(c,roundCorrect+" / 10 bonnes réponses",23,true,PURPLE);ctext(c,"Niveau : "+level+" / 50\nÉtoiles : "+stars+(bonus>0?"  •  Bonus +10":""),18,false,Color.rgb(70,75,145));button("▶ Continuer",ORANGE).setOnClickListener(v->menu());button("🔁 Rejouer",GREEN).setOnClickListener(v->start(mode));button("🏠 Accueil",PURPLE).setOnClickListener(v->home());signature();}
 
-    private void trophies(){screen();brand();mascot();LinearLayout c=card(Color.argb(242,255,249,225));ctext(c,"🏆 Trophées de " + name,27,true,Color.rgb(150,90,15));ctext(c,correct>=5?"🥉 Premier pas — débloqué":"🔒 Premier pas — 5 bonnes réponses",17,false,DEEP);ctext(c,correct>=25?"🥈 Calculateur — débloqué":"🔒 Calculateur — 25 bonnes réponses",17,false,DEEP);ctext(c,correct>=50?"🥇 Champion — débloqué":"🔒 Champion — 50 bonnes réponses",17,false,DEEP);ctext(c,level>=10?"🚀 Explorateur — débloqué":"🔒 Explorateur — niveau 10",17,false,DEEP);button("← Retour",PURPLE).setOnClickListener(v->home());}
+    private void trophies(){screen();brand();mascot();LinearLayout c=card(Color.argb(242,255,249,225));ctext(c,"🏆 Trophées de " + name,27,true,Color.rgb(150,90,15));ctext(c,correct>=5?"🥉 Premier pas — débloqué":"🔒 Premier pas — 5 bonnes réponses",17,false,DEEP);ctext(c,correct>=25?"🥈 Calculateur — débloqué":"🔒 Calculateur — 25 bonnes réponses",17,false,DEEP);ctext(c,correct>=50?"🥇 Champion — débloqué":"🔒 Champion — 50 bonnes réponses",17,false,DEEP);ctext(c,level>=10?"🚀 Explorateur — débloqué":"🔒 Explorateur — niveau 10",17,false,DEEP);button("← Retour",PURPLE).setOnClickListener(v->home());signature();}
 
-    private void progress(){screen();brand();LinearLayout c=card(Color.argb(242,229,255,244));int rate=total==0?0:(100*correct/total);ctext(c,"📊 Progression de " + name,27,true,Color.rgb(20,105,74));ctext(c,"Calculs réalisés : " + total + "\nBonnes réponses : " + correct + "\nRéussite : " + rate + " %\nNiveau : " + level + " / 50\nÉtoiles : " + stars,19,false,DEEP);button("← Retour",PURPLE).setOnClickListener(v->home());}
+    private void progress(){screen();brand();LinearLayout c=card(Color.argb(242,229,255,244));int rate=total==0?0:(100*correct/total);ctext(c,"📊 Progression de " + name,27,true,Color.rgb(20,105,74));ctext(c,"Calculs réalisés : " + total + "\nBonnes réponses : " + correct + "\nRéussite : " + rate + " %\nNiveau : " + level + " / 50\nÉtoiles : " + stars,19,false,DEEP);button("← Retour",PURPLE).setOnClickListener(v->home());signature();}
 
-    private void profile(){screen();brand();LinearLayout c=card(Color.argb(240,248,252,255));ctext(c,"👤 Mon profil",27,true,DEEP);EditText e=new EditText(this);e.setText(name);e.setTextSize(19);e.setTextColor(DEEP);e.setBackground(bg(WHITE,24));e.setPadding(dp(18),0,dp(18),0);c.addView(e,new LinearLayout.LayoutParams(-1,dp(64)));cardButton(c,"💾 Enregistrer",GREEN).setOnClickListener(v->{String n=e.getText().toString().trim();if(n.isEmpty()){Toast.makeText(this,"Le prénom est obligatoire",Toast.LENGTH_SHORT).show();return;}name=n;save();home();});button("Réinitialiser la progression",PINK).setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Réinitialiser ?").setMessage("La progression sera remise à zéro.").setNegativeButton("Annuler",null).setPositiveButton("Oui",(d,w)->{level=1;stars=0;total=0;correct=0;save();home();}).show());button("← Retour",PURPLE).setOnClickListener(v->home());}
+    private void profile(){screen();brand();LinearLayout c=card(Color.argb(240,248,252,255));ctext(c,"👤 Mon profil",27,true,DEEP);EditText e=new EditText(this);e.setText(name);e.setTextSize(19);e.setTextColor(DEEP);e.setBackground(bg(WHITE,24));e.setPadding(dp(18),0,dp(18),0);c.addView(e,new LinearLayout.LayoutParams(-1,dp(64)));cardButton(c,"💾 Enregistrer",GREEN).setOnClickListener(v->{String n=e.getText().toString().trim();if(n.isEmpty()){Toast.makeText(this,"Le prénom est obligatoire",Toast.LENGTH_SHORT).show();return;}name=n;save();home();});button("Réinitialiser la progression",PINK).setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Réinitialiser ?").setMessage("La progression sera remise à zéro.").setNegativeButton("Annuler",null).setPositiveButton("Oui",(d,w)->{level=1;stars=0;total=0;correct=0;save();home();}).show());button("← Retour",PURPLE).setOnClickListener(v->home());signature();}
 
     private void confirmQuit(){new AlertDialog.Builder(this).setTitle("Quitter la partie ?").setMessage("Ta progression sera conservée.").setNegativeButton("Continuer",null).setPositiveButton("Quitter",(d,w)->home()).show();}
     private void save(){prefs.edit().putString("name",name).putInt("level",level).putInt("stars",stars).putInt("total",total).putInt("correct",correct).apply();}
