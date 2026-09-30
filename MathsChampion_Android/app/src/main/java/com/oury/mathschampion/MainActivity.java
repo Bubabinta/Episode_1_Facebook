@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
@@ -19,9 +20,11 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 
 public class MainActivity extends Activity {
@@ -29,13 +32,17 @@ public class MainActivity extends Activity {
     private LinearLayout root;
     private SharedPreferences prefs;
     private String name = "", mode = "MIX", currentOp = "ADD", currentSign = "+";
+    private String voiceType = "FEMME";
     private boolean atNameEntry = false;
     private int level = 1, stars = 0, total = 0, correct = 0, q = 0, roundCorrect = 0, answer = 0;
     private int currentA = 0, currentB = 0;
     private final List<String> mistakes = new ArrayList<>();
 
+    private TextToSpeech tts;
+    private boolean ttsReady = false;
+    private String pendingSpeech = null;
+
     private static final int BLUE = Color.rgb(20,118,255);
-    private static final int CYAN = Color.rgb(30,196,255);
     private static final int PURPLE = Color.rgb(119,55,245);
     private static final int DEEP = Color.rgb(20,38,160);
     private static final int YELLOW = Color.rgb(255,190,25);
@@ -51,7 +58,47 @@ public class MainActivity extends Activity {
         stars = prefs.getInt("stars", 0);
         total = prefs.getInt("total", 0);
         correct = prefs.getInt("correct", 0);
+        voiceType = prefs.getString("voiceType", "FEMME");
+        initTts();
         nameEntry();
+    }
+
+    private void initTts(){
+        tts = new TextToSpeech(this, status -> {
+            if(status == TextToSpeech.SUCCESS){
+                int r = tts.setLanguage(Locale.FRANCE);
+                if(r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED){
+                    r = tts.setLanguage(Locale.FRENCH);
+                }
+                ttsReady = r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED;
+                applyVoiceSettings();
+                if(ttsReady && pendingSpeech != null){
+                    String msg = pendingSpeech;
+                    pendingSpeech = null;
+                    tts.speak(msg, TextToSpeech.QUEUE_FLUSH, null, "taf_pending");
+                }
+            }
+        });
+    }
+
+    private void applyVoiceSettings(){
+        if(tts == null) return;
+        if("HOMME".equals(voiceType)){
+            tts.setPitch(0.82f);
+            tts.setSpeechRate(0.93f);
+        } else {
+            tts.setPitch(1.12f);
+            tts.setSpeechRate(0.96f);
+        }
+    }
+
+    private void speak(String message){
+        if(ttsReady && tts != null){
+            applyVoiceSettings();
+            tts.speak(message, TextToSpeech.QUEUE_FLUSH, null, "taf_result");
+        } else {
+            pendingSpeech = message;
+        }
     }
 
     private GradientDrawable bg(int color, float radius) {
@@ -195,7 +242,6 @@ public class MainActivity extends Activity {
     }
 
     private String explanationFor(int chosen){
-        String calc=currentA+" "+currentSign+" "+currentB+" = "+answer;
         String why;
         if("SUB".equals(currentOp)) why="On part de "+currentA+" et on retire "+currentB+". Il reste "+answer+".";
         else if("MUL".equals(currentOp)) why=currentA+" × "+currentB+" signifie "+currentA+" groupes de "+currentB+". Le total est "+answer+".";
@@ -211,11 +257,27 @@ public class MainActivity extends Activity {
         save();next();
     }
 
+    private void speakRoundResult(){
+        String message;
+        if(roundCorrect == 10){
+            message = "Félicitations " + name + " ! Tu as trouvé les dix opérations. Excellent travail, champion !";
+        } else {
+            message = "Courage " + name + ". Tu n'as pas trouvé toutes les opérations. Tu as obtenu " + roundCorrect + " bonnes réponses sur dix. Regarde les corrections et réessaie.";
+        }
+        speak(message);
+    }
+
     private void finishRound(){
         int bonus=0;if(roundCorrect>=8){level=Math.min(50,level+1);stars+=10;bonus=10;}save();screen();brand();mascot();
         LinearLayout c=card(Color.argb(240,248,252,255));
-        ctext(c,"🏆 Bravo " + name + " !",28,true,DEEP);
-        ctext(c,roundCorrect+" / 10 bonnes réponses",23,true,PURPLE);
+        if(roundCorrect == 10){
+            ctext(c,"🎉 Félicitations " + name + " !",28,true,DEEP);
+            ctext(c,"10 / 10 — Toutes les opérations sont correctes !",23,true,Color.rgb(20,120,70));
+        } else {
+            ctext(c,"💪 Courage " + name + " !",28,true,DEEP);
+            ctext(c,roundCorrect+" / 10 bonnes réponses",23,true,PURPLE);
+            ctext(c,"Tu n’as pas trouvé toutes les opérations. Relis les corrections et essaie encore.",16,true,Color.rgb(150,75,25));
+        }
         ctext(c,"Niveau : "+level+" / 50\nÉtoiles : "+stars+(bonus>0?"  •  Bonus +10":""),18,false,Color.rgb(70,75,145));
 
         LinearLayout review=card(Color.argb(245,255,248,226));
@@ -232,20 +294,41 @@ public class MainActivity extends Activity {
             }
         }
 
+        button("🔊 Réécouter le message",BLUE).setOnClickListener(v->speakRoundResult());
         button("▶ Continuer",ORANGE).setOnClickListener(v->menu());
         button("🔁 Rejouer",GREEN).setOnClickListener(v->start(mode));
         button("🏠 Accueil",PURPLE).setOnClickListener(v->home());
         signature();
+        speakRoundResult();
     }
 
     private void trophies(){screen();brand();mascot();LinearLayout c=card(Color.argb(242,255,249,225));ctext(c,"🏆 Trophées de " + name,27,true,Color.rgb(150,90,15));ctext(c,correct>=5?"🥉 Premier pas — débloqué":"🔒 Premier pas — 5 bonnes réponses",17,false,DEEP);ctext(c,correct>=25?"🥈 Calculateur — débloqué":"🔒 Calculateur — 25 bonnes réponses",17,false,DEEP);ctext(c,correct>=50?"🥇 Champion — débloqué":"🔒 Champion — 50 bonnes réponses",17,false,DEEP);ctext(c,level>=10?"🚀 Explorateur — débloqué":"🔒 Explorateur — niveau 10",17,false,DEEP);button("← Retour",PURPLE).setOnClickListener(v->home());signature();}
 
     private void progress(){screen();brand();LinearLayout c=card(Color.argb(242,229,255,244));int rate=total==0?0:(100*correct/total);ctext(c,"📊 Progression de " + name,27,true,Color.rgb(20,105,74));ctext(c,"Calculs réalisés : " + total + "\nBonnes réponses : " + correct + "\nRéussite : " + rate + " %\nNiveau : " + level + " / 50\nÉtoiles : " + stars,19,false,DEEP);button("← Retour",PURPLE).setOnClickListener(v->home());signature();}
 
-    private void profile(){screen();brand();LinearLayout c=card(Color.argb(240,248,252,255));ctext(c,"👤 Mon profil",27,true,DEEP);EditText e=new EditText(this);e.setText(name);e.setTextSize(19);e.setTextColor(DEEP);e.setBackground(bg(WHITE,24));e.setPadding(dp(18),0,dp(18),0);c.addView(e,new LinearLayout.LayoutParams(-1,dp(64)));cardButton(c,"💾 Enregistrer",GREEN).setOnClickListener(v->{String n=e.getText().toString().trim();if(n.isEmpty()){Toast.makeText(this,"Le prénom est obligatoire",Toast.LENGTH_SHORT).show();return;}name=n;save();home();});button("Réinitialiser la progression",PINK).setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Réinitialiser ?").setMessage("La progression sera remise à zéro.").setNegativeButton("Annuler",null).setPositiveButton("Oui",(d,w)->{level=1;stars=0;total=0;correct=0;save();home();}).show());button("← Retour",PURPLE).setOnClickListener(v->home());signature();}
+    private void profile(){
+        screen();brand();
+        LinearLayout c=card(Color.argb(240,248,252,255));
+        ctext(c,"👤 Mon profil",27,true,DEEP);
+        EditText e=new EditText(this);e.setText(name);e.setTextSize(19);e.setTextColor(DEEP);e.setBackground(bg(WHITE,24));e.setPadding(dp(18),0,dp(18),0);c.addView(e,new LinearLayout.LayoutParams(-1,dp(64)));
+        cardButton(c,"💾 Enregistrer",GREEN).setOnClickListener(v->{String n=e.getText().toString().trim();if(n.isEmpty()){Toast.makeText(this,"Le prénom est obligatoire",Toast.LENGTH_SHORT).show();return;}name=n;save();home();});
+        ctext(c,"🔊 Voix de fin de questionnaire : " + ("HOMME".equals(voiceType)?"Homme":"Femme"),16,true,DEEP);
+        cardButton(c,"👩 Choisir voix femme",PINK).setOnClickListener(v->{voiceType="FEMME";save();applyVoiceSettings();speak("Bonjour " + name + ". Voici la voix femme de TafCalcul.");Toast.makeText(this,"Voix femme sélectionnée",Toast.LENGTH_SHORT).show();});
+        cardButton(c,"👨 Choisir voix homme",BLUE).setOnClickListener(v->{voiceType="HOMME";save();applyVoiceSettings();speak("Bonjour " + name + ". Voici la voix homme de TafCalcul.");Toast.makeText(this,"Voix homme sélectionnée",Toast.LENGTH_SHORT).show();});
+        button("Réinitialiser la progression",PINK).setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Réinitialiser ?").setMessage("La progression sera remise à zéro.").setNegativeButton("Annuler",null).setPositiveButton("Oui",(d,w)->{level=1;stars=0;total=0;correct=0;save();home();}).show());
+        button("← Retour",PURPLE).setOnClickListener(v->home());signature();
+    }
 
     private void confirmQuit(){new AlertDialog.Builder(this).setTitle("Quitter la partie ?").setMessage("Ta progression sera conservée.").setNegativeButton("Continuer",null).setPositiveButton("Quitter",(d,w)->home()).show();}
-    private void save(){prefs.edit().putString("name",name).putInt("level",level).putInt("stars",stars).putInt("total",total).putInt("correct",correct).apply();}
+
+    private void save(){prefs.edit().putString("name",name).putString("voiceType",voiceType).putInt("level",level).putInt("stars",stars).putInt("total",total).putInt("correct",correct).apply();}
+
     private int dp(int v){return (int)(v*getResources().getDisplayMetrics().density+0.5f);}
+
+    @Override protected void onDestroy(){
+        if(tts != null){tts.stop();tts.shutdown();}
+        super.onDestroy();
+    }
+
     @Override public void onBackPressed(){if(atNameEntry)new AlertDialog.Builder(this).setTitle("Quitter TafCalcul ?").setMessage("Veux-tu fermer l’application ?").setNegativeButton("Non",null).setPositiveButton("Oui",(d,w)->finish()).show();else confirmQuit();}
 }
